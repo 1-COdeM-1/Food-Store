@@ -248,11 +248,11 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
         <div className="mt-auto pt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-base font-bold text-primary">
-              {formatPrice(sellPrice, language === 'ar' ? 'ar-SA' : 'en-US')}
+              {formatPrice(sellPrice)}
             </span>
             {discountPercentage > 0 && (
               <span className="text-xs text-red-500 line-through">
-                {formatPrice(originalPrice, language === 'ar' ? 'ar-SA' : 'en-US')}
+                {formatPrice(originalPrice)}
               </span>
             )}
           </div>

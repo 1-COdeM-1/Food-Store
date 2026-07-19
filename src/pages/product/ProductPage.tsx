@@ -229,12 +229,12 @@ export function ProductPage() {
             {/* Price */}
             <div className="flex items-baseline gap-3">
               <span className="text-3xl sm:text-4xl font-bold text-primary">
-                {formatPrice(sellPrice, language === 'ar' ? 'ar-SA' : 'en-US')}
+                {formatPrice(sellPrice)}
               </span>
               {discountPercentage > 0 && (
                 <>
                   <span className="text-xl text-red-500 line-through">
-                    {formatPrice(originalPrice, language === 'ar' ? 'ar-SA' : 'en-US')}
+                    {formatPrice(originalPrice)}
                   </span>
                   <span className="bg-red-100 text-red-600 text-sm font-bold px-2.5 py-1 rounded-full">
                     -{discountPercentage}%
