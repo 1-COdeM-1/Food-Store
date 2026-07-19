@@ -298,7 +298,7 @@ export function ProductPage() {
                 )}
                 onClick={() => {
                   const cleanPhone = product.whatsappNumber.replace(/\D/g, '');
-                  window.location.href = `tel:+${cleanPhone}`;
+                  window.location.href = `tel:${cleanPhone}`;
                 }}
               >
                 <Phone className="w-5 h-5 mr-2" />
