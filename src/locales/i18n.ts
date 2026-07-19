@@ -13,7 +13,7 @@ const resources = {
 };
 
 const storedLang = localStorage.getItem('language') as 'en' | 'ar' | null;
-const defaultLang = storedLang || 'en';
+const defaultLang = storedLang || 'ar';
 
 i18n
   .use(initReactI18next)

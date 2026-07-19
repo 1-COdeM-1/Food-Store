@@ -13,8 +13,8 @@ interface LanguageState {
 export const useLanguageStore = create<LanguageState>()(
   persist(
     (set) => ({
-      language: 'en',
-      dir: 'ltr',
+      language: 'ar',
+      dir: 'rtl',
       setLanguage: (language) => {
         const dir = language === 'ar' ? 'rtl' : 'ltr';
         set({ language, dir });
