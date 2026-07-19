@@ -10,6 +10,7 @@ import {
   Package,
   Truck,
   Shield,
+  Phone,
 } from 'lucide-react';
 import { productService } from '@/services/productService';
 import { ProductCard } from '@/components/shared/ProductCard';
@@ -286,6 +287,22 @@ export function ProductPage() {
               >
                 <MessageCircle className="w-5 h-5 mr-2" />
                 {t('shareOnWhatsApp')}
+              </Button>
+
+              <Button
+                size="lg"
+                className={cn(
+                  'h-12 px-8 rounded-xl font-semibold',
+                  'bg-blue-600 hover:bg-blue-700 text-white',
+                  'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg'
+                )}
+                onClick={() => {
+                  const cleanPhone = product.whatsappNumber.replace(/\D/g, '');
+                  window.location.href = `tel:+${cleanPhone}`;
+                }}
+              >
+                <Phone className="w-5 h-5 mr-2" />
+                {t('callSeller')}
               </Button>
 
               <Button

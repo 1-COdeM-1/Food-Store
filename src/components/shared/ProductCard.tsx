@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Heart, MessageCircle, Eye } from 'lucide-react';
+import { Heart, MessageCircle, Eye, Phone } from 'lucide-react';
 import { useLanguageStore } from '@/store/languageStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { cn } from '@/utils/cn';
@@ -48,6 +48,13 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
       language
     );
     window.open(url, '_blank');
+  };
+
+  const handleCall = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const cleanPhone = product.whatsappNumber.replace(/\D/g, '');
+    window.location.href = `tel:+${cleanPhone}`;
   };
 
   const handleViewDetails = () => {
@@ -139,6 +146,15 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
               >
                 <MessageCircle className="h-4 w-4" />
               </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 rounded-full border-green-400 text-green-600 hover:bg-green-500 hover:text-white hover:border-green-500 transition-all duration-200"
+                onClick={handleCall}
+                aria-label={t('callSeller')}
+              >
+                <Phone className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -210,6 +226,15 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
           >
             <MessageCircle className="h-4 w-4" />
           </Button>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-10 w-10 rounded-full bg-white/90 text-gray-900 hover:bg-white shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-150 hover:text-blue-600"
+            onClick={handleCall}
+            aria-label={t('callSeller')}
+          >
+            <Phone className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Badges */}
@@ -245,7 +270,7 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
           {displayDescription}
         </p>
 
-        <div className="mt-auto pt-3 flex items-center justify-between">
+        <div className="mt-auto pt-3 flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className="text-base font-bold text-primary">
               {formatPrice(sellPrice)}
@@ -255,6 +280,28 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
                 {formatPrice(originalPrice)}
               </span>
             )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200"
+              onClick={handleWhatsApp}
+              aria-label={t('shareOnWhatsApp')}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span className="text-xs font-semibold">{t('shareOnWhatsApp').split(' ')[0]}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-200"
+              onClick={handleCall}
+              aria-label={t('callSeller')}
+            >
+              <Phone className="h-3.5 w-3.5" />
+              <span className="text-xs font-semibold">{t('callSeller').split(' ')[0]}</span>
+            </Button>
           </div>
         </div>
       </div>
