@@ -54,7 +54,7 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
     e.preventDefault();
     e.stopPropagation();
     const cleanPhone = product.whatsappNumber.replace(/\D/g, '');
-    window.location.href = `tel:+${cleanPhone}`;
+    window.location.href = `tel:${cleanPhone}`;
   };
 
   const handleViewDetails = () => {
