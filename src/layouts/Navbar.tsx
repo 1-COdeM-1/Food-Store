@@ -7,7 +7,6 @@ import {
   Sun,
   Moon,
   Heart,
-  Globe,
   ShoppingBag,
 } from 'lucide-react';
 import { useThemeStore } from '@/store/themeStore';
@@ -21,7 +20,7 @@ export function Navbar() {
   const { t } = useTranslation('common');
   const location = useLocation();
   const { resolvedTheme, toggleTheme } = useThemeStore();
-  const { language, toggleLanguage } = useLanguageStore();
+  const { language } = useLanguageStore();
   const wishlistCount = useWishlistStore((state) => state.getCount());
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
