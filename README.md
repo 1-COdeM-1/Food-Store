@@ -1,4 +1,5 @@
 # 🍗 CrispyBites - Modern Food Store
+![Food Store Banner](./assets/banner.png)
 
 ![React](https://img.shields.io/badge/React-19.2.0-blue?style=for-the-badge&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=for-the-badge&logo=typescript)
