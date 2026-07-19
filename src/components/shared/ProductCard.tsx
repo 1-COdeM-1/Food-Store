@@ -287,10 +287,10 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
               size="sm"
               className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200"
               onClick={handleWhatsApp}
-              aria-label={t('shareOnWhatsApp')}
+              aria-label={t('bookWithWhatsapp')}
             >
               <MessageCircle className="h-3.5 w-3.5" />
-              <span className="text-xs font-semibold">{t('shareOnWhatsApp').split(' ')[0]}</span>
+              <span className="text-xs font-semibold">{t('bookWithWhatsapp').split(' ')[0]}</span>
             </Button>
             <Button
               variant="outline"

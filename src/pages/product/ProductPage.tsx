@@ -286,7 +286,7 @@ export function ProductPage() {
                 onClick={() => window.open(whatsappUrl, '_blank')}
               >
                 <MessageCircle className="w-5 h-5 mr-2" />
-                {t('shareOnWhatsApp')}
+                {t('bookWithWhatsapp')}
               </Button>
 
               <Button
@@ -302,7 +302,7 @@ export function ProductPage() {
                 }}
               >
                 <Phone className="w-5 h-5 mr-2" />
-                {t('callSeller')}
+                {t('callfororder')}
               </Button>
 
               <Button
