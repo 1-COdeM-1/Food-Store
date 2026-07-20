@@ -99,7 +99,7 @@ export function HeroSection() {
               {t('hero.description')}
             </p>
 
-            {/* CTA Buttons */}
+
             <div
               className={cn(
                 'mt-10 flex flex-col sm:flex-row items-center justify-center gap-4',
@@ -135,28 +135,7 @@ export function HeroSection() {
             </div>
 
             {/* Stats */}
-            <div
-              className={cn(
-                'mt-16 grid grid-cols-3 gap-8 max-w-md mx-auto',
-                'animate-fade-in-up'
-              )}
-              style={{ animationDelay: '400ms', opacity: 0 }}
-            >
-              {[
-                { value: '500+', label: language === 'ar' ? 'منتج' : 'Products' },
-                { value: '50+', label: language === 'ar' ? 'علامة تجارية' : 'Brands' },
-                { value: '10K+', label: language === 'ar' ? 'عميل' : 'Customers' },
-              ].map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-foreground">
-                    {stat.value}
-                  </div>
-                  <div className="mt-1 text-xs sm:text-sm text-muted-foreground">
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
+
           </div>
         </div>
 

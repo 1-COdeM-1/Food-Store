@@ -1,5 +1,5 @@
 {
-  "appName": "CrispyBites",
+  "appName": "chicken spicy",
   "tagline": "The Best Chicken in Town",
   "search": "Search",
   "searchPlaceholder": "Search products...",
@@ -43,7 +43,6 @@
   "shop": "Shop",
   "wishlist": "Wishlist",
   "about": "About",
-  "contact": "Contact",
   "contactUs": "Contact Us",
   "quickLinks": "Quick Links",
   "followUs": "Follow Us",
@@ -101,28 +100,7 @@
     "integrityDesc": "We operate with transparency and honesty in all our dealings.",
     "innovationDesc": "We continuously seek new recipes and flavors to improve your dining experience."
   },
-  "contact": {
-    "title": "Contact Us",
-    "subtitle": "We would love to hear from you",
-    "description": "Have a question or feedback? Fill out the form below and we will get back to you as soon as possible.",
-    "form": {
-      "nameLabel": "Full Name",
-      "namePlaceholder": "Enter your name",
-      "emailLabel": "Email Address",
-      "emailPlaceholder": "Enter your email",
-      "phoneLabel": "Phone Number",
-      "phonePlaceholder": "Enter your phone number",
-      "messageLabel": "Message",
-      "messagePlaceholder": "Write your message here...",
-      "successMessage": "Thank you! We will get back to you soon.",
-      "errorMessage": "Something went wrong. Please try again."
-    },
-    "info": {
-      "title": "Get in Touch",
-      "description": "Our team is ready to assist you with any questions or concerns.",
-      "hours": "Sunday - Thursday: 9:00 AM - 6:00 PM"
-    }
-  },
+
   "wishlist": {
     "title": "My Wishlist",
     "empty": "Your wishlist is empty",

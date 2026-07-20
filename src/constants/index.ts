@@ -5,15 +5,14 @@ export const APP_TAGLINE = 'Premium Shopping Experience';
 export const APP_TAGLINE_AR = 'تجربة تسوق فاخرة';
 
 export const WHATSAPP_BASE_URL = 'https://wa.me';
-export const CONTACT_EMAIL = 'hello@luxemarket.com';
-export const CONTACT_PHONE = '+966501234567';
+export const CONTACT_EMAIL =  "mahmodcom034@gmail.com"
+export const CONTACT_PHONE = '01121638405';
 
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Home', labelAr: 'الرئيسية', href: '/' },
-  { label: 'Shop', labelAr: 'المتجر', href: '/shop' },
+  { label: 'products', labelAr: 'المنتجات', href: '/shop' },
   { label: 'Wishlist', labelAr: 'المفضلة', href: '/wishlist' },
   { label: 'About', labelAr: 'من نحن', href: '/about' },
-  { label: 'Contact Us', labelAr: 'اتصل بنا', href: '/contact' },
 ];
 
 export const CATEGORIES: Category[] = [

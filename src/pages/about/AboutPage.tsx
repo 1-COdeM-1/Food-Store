@@ -135,26 +135,6 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="py-16 lg:py-24 bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-            {[
-              { value: '5+', label: language === 'ar' ? 'سنوات خبرة' : 'Years Experience' },
-              { value: '10K+', label: language === 'ar' ? 'عميل سعيد' : 'Happy Customers' },
-              { value: '500+', label: language === 'ar' ? 'منتج' : 'Products' },
-              { value: '50+', label: language === 'ar' ? 'علامة تجارية' : 'Brands' },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <div className="text-4xl sm:text-5xl font-bold">{stat.value}</div>
-                <div className="mt-2 text-primary-foreground/80 text-sm">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

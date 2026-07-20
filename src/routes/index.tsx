@@ -19,9 +19,7 @@ const WishlistPage = lazy(() =>
 const AboutPage = lazy(() =>
   import('@/pages/about/AboutPage').then((m) => ({ default: m.AboutPage }))
 );
-const ContactPage = lazy(() =>
-  import('@/pages/contact/ContactPage').then((m) => ({ default: m.ContactPage }))
-);
+
 const ErrorPage = lazy(() =>
   import('@/pages/ErrorPage').then((m) => ({ default: m.ErrorPage }))
 );
@@ -78,14 +76,7 @@ export function AppRoutes() {
             </Suspense>
           }
         />
-        <Route
-          path="/contact"
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <ContactPage />
-            </Suspense>
-          }
-        />
+
         <Route
           path="*"
           element={

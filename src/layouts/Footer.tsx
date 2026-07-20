@@ -45,11 +45,11 @@ export function Footer() {
             {/* Social Links */}
             <div className="flex items-center gap-3 mt-6">
               <a
-                href={SOCIAL_LINKS.facebook}
+                href={"https://www.facebook.com/share/1HkmbADvQ3/"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  'w-9 h-9 rounded-lg bg-background border border-border',
+                  'w-14 h-14 rounded-lg bg-background border border-border',
                   'flex items-center justify-center text-muted-foreground',
                   'hover:text-primary hover:border-primary/30 transition-all duration-200'
                 )}
@@ -57,32 +57,8 @@ export function Footer() {
               >
                 <Facebook className="w-4 h-4" />
               </a>
-              <a
-                href={SOCIAL_LINKS.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  'w-9 h-9 rounded-lg bg-background border border-border',
-                  'flex items-center justify-center text-muted-foreground',
-                  'hover:text-primary hover:border-primary/30 transition-all duration-200'
-                )}
-                aria-label="Instagram"
-              >
-                <Instagram className="w-4 h-4" />
-              </a>
-              <a
-                href={SOCIAL_LINKS.twitter}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  'w-9 h-9 rounded-lg bg-background border border-border',
-                  'flex items-center justify-center text-muted-foreground',
-                  'hover:text-primary hover:border-primary/30 transition-all duration-200'
-                )}
-                aria-label="Twitter"
-              >
-                <Twitter className="w-4 h-4" />
-              </a>
+
+              
             </div>
           </div>
 
@@ -105,58 +81,22 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Customer Service */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-              {t('footer.customerService')}
-            </h3>
-            <ul className="mt-4 space-y-2.5">
-              <li>
-                <span className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 cursor-pointer">
-                  {t('footer.faq')}
-                </span>
-              </li>
-              <li>
-                <span className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 cursor-pointer">
-                  {t('footer.shipping')}
-                </span>
-              </li>
-              <li>
-                <span className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 cursor-pointer">
-                  {t('footer.returns')}
-                </span>
-              </li>
-              <li>
-                <span className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 cursor-pointer">
-                  {t('footer.privacy')}
-                </span>
-              </li>
-              <li>
-                <span className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 cursor-pointer">
-                  {t('footer.terms')}
-                </span>
-              </li>
-            </ul>
-          </div>
-
+          
           {/* Contact Info */}
           <div>
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
               {t('contactUs')}
             </h3>
             <ul className="mt-4 space-y-3">
-              <li className="flex items-start gap-3">
-                <Mail className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">hello@luxemarket.com</span>
-              </li>
+              
               <li className="flex items-start gap-3">
                 <Phone className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">+966 50 123 4567</span>
+                <span className="text-sm text-muted-foreground">01121638405 </span>
               </li>
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                 <span className="text-sm text-muted-foreground">
-                  Riyadh, Saudi Arabia
+                  الخانكة- أمام مدرسة الصنائع الثانويه بنين
                 </span>
               </li>
             </ul>

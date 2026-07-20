@@ -8,8 +8,6 @@ import {
   Star,
   ChevronRight,
   Package,
-  Truck,
-  Shield,
   Phone,
 } from 'lucide-react';
 import { productService } from '@/services/productService';
@@ -323,48 +321,7 @@ export function ProductPage() {
               </Button>
             </div>
 
-            {/* Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Truck className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {language === 'ar' ? 'شحن مجاني' : 'Free Shipping'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === 'ar' ? 'للطلبات فوق $100' : 'Orders over $100'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Shield className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {language === 'ar' ? 'ضمان الجودة' : 'Quality Guarantee'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === 'ar' ? 'منتجات أصلية 100%' : '100% Authentic'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Package className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {language === 'ar' ? 'إرجاع سهل' : 'Easy Returns'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === 'ar' ? 'خلال 30 يوماً' : '30 Days Return'}
-                  </p>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
 
