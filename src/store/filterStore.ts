@@ -40,8 +40,6 @@ export const useFilterStore = create<FilterState>()(
     {
       name: 'filter-storage',
       partialize: (state) => ({
-        category: state.category,
-        priceRange: state.priceRange,
         sortBy: state.sortBy,
         viewMode: state.viewMode,
       }),
