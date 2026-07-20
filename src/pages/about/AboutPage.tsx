@@ -5,7 +5,7 @@ import { cn } from '@/utils/cn';
 
 export function AboutPage() {
   const { t } = useTranslation('common');
-  const { language, dir } = useLanguageStore();
+  const { dir } = useLanguageStore();
 
   const values = [
     {

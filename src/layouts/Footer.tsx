@@ -2,16 +2,13 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ShoppingBag,
-  Mail,
   Phone,
   MapPin,
   Facebook,
-  Instagram,
-  Twitter,
   ArrowUp,
 } from 'lucide-react';
 import { useLanguageStore } from '@/store/languageStore';
-import { NAV_ITEMS, SOCIAL_LINKS } from '@/constants';
+import { NAV_ITEMS } from '@/constants';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/ui/button';
 
