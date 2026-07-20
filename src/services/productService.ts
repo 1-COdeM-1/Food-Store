@@ -114,7 +114,12 @@ export async function getProducts(filters?: ProductFilters): Promise<Product[]> 
     // Skip filter if at the default "no limit" state [0, Infinity]
     const isDefaultRange = min === 0 && max === Infinity;
     if (!isDefaultRange) {
-      result = result.filter((p) => p.price >= min && (max === Infinity || p.price <= max));
+      result = result.filter((p) => {
+        // Compare against the actual selling price (after discount)
+        const discount = p.discount || 0;
+        const sellPrice = discount > 0 ? p.price - p.price * (discount / 100) : p.price;
+        return sellPrice >= min && (max === Infinity || sellPrice <= max);
+      });
     }
   }
 
