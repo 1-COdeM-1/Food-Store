@@ -12,7 +12,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Home', labelAr: 'الرئيسية', href: '/' },
   { label: 'products', labelAr: 'المنتجات', href: '/shop' },
   { label: 'Wishlist', labelAr: 'المفضلة', href: '/wishlist' },
-  { label: 'About', labelAr: 'من نحن', href: '/about' },
 ];
 
 export const CATEGORIES: Category[] = [
