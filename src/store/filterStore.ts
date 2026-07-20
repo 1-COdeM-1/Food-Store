@@ -20,7 +20,7 @@ export const useFilterStore = create<FilterState>()(
   persist(
     (set) => ({
       category: null,
-      priceRange: [0, 1000],
+      priceRange: [0, Infinity],
       searchQuery: '',
       sortBy: 'newest',
       viewMode: 'grid',
@@ -32,7 +32,7 @@ export const useFilterStore = create<FilterState>()(
       clearFilters: () =>
         set({
           category: null,
-          priceRange: [0, 1000],
+          priceRange: [0, Infinity],
           searchQuery: '',
           sortBy: 'newest',
         }),

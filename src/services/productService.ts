@@ -108,13 +108,13 @@ export async function getProducts(filters?: ProductFilters): Promise<Product[]> 
     );
   }
 
-  // Price range filter — only apply when range has been narrowed from defaults
+  // Price range filter — only apply when a real range has been set
   if (filters?.priceRange) {
     const [min, max] = filters.priceRange;
-    // Skip filter if at full default range [0, Infinity] or [0, 1000] untouched
-    const isDefaultRange = min === 0 && (max === 1000 || max === Infinity);
+    // Skip filter if at the default "no limit" state [0, Infinity]
+    const isDefaultRange = min === 0 && max === Infinity;
     if (!isDefaultRange) {
-      result = result.filter((p) => p.price >= min && p.price <= max);
+      result = result.filter((p) => p.price >= min && (max === Infinity || p.price <= max));
     }
   }
 

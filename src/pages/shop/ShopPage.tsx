@@ -19,12 +19,148 @@ import { SORT_OPTIONS } from '@/constants';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
 import { useRealtimeProducts } from '@/hooks/useRealtimeProducts';
 import type { Product, SortOption } from '@/types';
 import type { DynamicCategory } from '@/services/productService';
 
 const PAGE_SIZE = 12;
+
+interface FilterContentProps {
+  t: (key: string) => string;
+  language: string;
+  categories: DynamicCategory[];
+  category: string | null;
+  draftMin: number;
+  draftMax: string;
+  activeFiltersCount: number;
+  setCategory: (cat: string | null) => void;
+  setSearchParams: (params: Record<string, string>) => void;
+  setPage: (page: number) => void;
+  setDraftMin: (val: number) => void;
+  setDraftMax: (val: string) => void;
+  handleApplyFilters: () => void;
+  handleClearFilters: () => void;
+}
+
+function FilterContent({
+  t,
+  language,
+  categories,
+  category,
+  draftMin,
+  draftMax,
+  activeFiltersCount,
+  setCategory,
+  setSearchParams,
+  setPage,
+  setDraftMin,
+  setDraftMax,
+  handleApplyFilters,
+  handleClearFilters,
+}: FilterContentProps) {
+  return (
+    <div className="space-y-6">
+      {/* Categories */}
+      <div>
+        <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
+          {t('categories')}
+        </h3>
+        <div className="space-y-1.5">
+          <button
+            onClick={() => {
+              setCategory(null);
+              setSearchParams({});
+              setPage(1);
+            }}
+            className={cn(
+              'w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200',
+              !category
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'text-muted-foreground hover:bg-accent'
+            )}
+          >
+            {t('all')} ({categories.reduce((acc, c) => acc + c.count, 0)})
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => {
+                setCategory(cat.id);
+                setPage(1);
+              }}
+              className={cn(
+                'w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200',
+                category === cat.id
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-muted-foreground hover:bg-accent'
+              )}
+            >
+              {language === 'ar' ? cat.nameAr : cat.name} ({cat.count})
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Price Range */}
+      <div>
+        <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
+          {t('priceRange')}
+        </h3>
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <label className="text-xs text-muted-foreground mb-1 block">{t('min')}</label>
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+              <Input
+                type="number"
+                min={0}
+                value={draftMin}
+                onChange={(e) => setDraftMin(Number(e.target.value))}
+                className="pl-6 h-9 text-sm"
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <div className="flex-1">
+            <label className="text-xs text-muted-foreground mb-1 block">{t('max')}</label>
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+              <Input
+                type="number"
+                min={0}
+                value={draftMax}
+                onChange={(e) => setDraftMax(e.target.value)}
+                className="pl-6 h-9 text-sm"
+                placeholder={t('max')}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-2">
+        <Button
+          className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+          onClick={handleApplyFilters}
+        >
+          <Search className="w-4 h-4 mr-2" />
+          {t('search')}
+        </Button>
+        {activeFiltersCount > 0 && (
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={handleClearFilters}
+          >
+            <X className="w-4 h-4 mr-2" />
+            {t('clearFilters')}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function ShopPage() {
   const { t } = useTranslation('common');
@@ -52,6 +188,27 @@ export function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [categories, setCategories] = useState<DynamicCategory[]>([]);
+
+  // Local draft state for price inputs — decoupled from the filter store
+  const [draftMin, setDraftMin] = useState<number>(priceRange[0]);
+  // Empty string means "no upper limit" (Infinity)
+  const [draftMax, setDraftMax] = useState<string>(
+    priceRange[1] === Infinity ? '' : String(priceRange[1])
+  );
+
+  // Apply price draft to store only when user clicks Search
+  const handleApplyFilters = () => {
+    const min = Math.max(0, draftMin);
+    const max = draftMax === '' ? Infinity : Math.max(min, Number(draftMax));
+    setPriceRange([min, max]);
+    setPage(1);
+  };
+
+  // Sync draft back when priceRange is reset externally (e.g. Clear Filters)
+  useEffect(() => {
+    setDraftMin(priceRange[0]);
+    setDraftMax(priceRange[1] === Infinity ? '' : String(priceRange[1]));
+  }, [priceRange[0], priceRange[1]]);
 
   // Sync URL category param with store
   useEffect(() => {
@@ -114,7 +271,7 @@ export function ShopPage() {
     let count = 0;
     if (category) count++;
     if (searchQuery) count++;
-    if (priceRange[0] > 0 || priceRange[1] < 1000) count++;
+    if (priceRange[0] > 0 || priceRange[1] < Infinity) count++;
     return count;
   }, [category, searchQuery, priceRange]);
 
@@ -124,85 +281,7 @@ export function ShopPage() {
     setPage(1);
   };
 
-  const FilterContent = () => (
-    <div className="space-y-6">
-      {/* Categories */}
-      <div>
-        <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
-          {t('categories')}
-        </h3>
-        <div className="space-y-1.5">
-          <button
-            onClick={() => {
-              setCategory(null);
-              setSearchParams({});
-              setPage(1);
-            }}
-            className={cn(
-              'w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200',
-              !category
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'text-muted-foreground hover:bg-accent'
-            )}
-          >
-            {t('all')} ({categories.reduce((acc, c) => acc + c.count, 0)})
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setCategory(cat.id);
-                setPage(1);
-              }}
-              className={cn(
-                'w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200',
-                category === cat.id
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-muted-foreground hover:bg-accent'
-              )}
-            >
-              {language === 'ar' ? cat.nameAr : cat.name} ({cat.count})
-            </button>
-          ))}
-        </div>
-      </div>
 
-      {/* Price Range */}
-      <div>
-        <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
-          {t('priceRange')}
-        </h3>
-        <div className="px-2">
-          <Slider
-            value={priceRange}
-            onValueChange={(value) => {
-              setPriceRange(value as [number, number]);
-              setPage(1);
-            }}
-            max={1000}
-            step={10}
-            className="py-4"
-          />
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>${priceRange[0]}</span>
-            <span>${priceRange[1]}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Clear Filters */}
-      {activeFiltersCount > 0 && (
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={handleClearFilters}
-        >
-          <X className="w-4 h-4 mr-2" />
-          {t('clearFilters')} ({activeFiltersCount})
-        </Button>
-      )}
-    </div>
-  );
 
   return (
     <div className="min-h-screen animate-fade-in">
@@ -309,7 +388,22 @@ export function ShopPage() {
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            <FilterContent />
+            <FilterContent
+                t={t}
+                language={language}
+                categories={categories}
+                category={category}
+                draftMin={draftMin}
+                draftMax={draftMax}
+                activeFiltersCount={activeFiltersCount}
+                setCategory={setCategory}
+                setSearchParams={(p) => setSearchParams(p)}
+                setPage={setPage}
+                setDraftMin={setDraftMin}
+                setDraftMax={setDraftMax}
+                handleApplyFilters={handleApplyFilters}
+                handleClearFilters={handleClearFilters}
+              />
           </div>
         )}
 
@@ -321,7 +415,22 @@ export function ShopPage() {
               <h2 className="text-lg font-semibold text-foreground mb-5">
                 {t('filters')}
               </h2>
-              <FilterContent />
+              <FilterContent
+                t={t}
+                language={language}
+                categories={categories}
+                category={category}
+                draftMin={draftMin}
+                draftMax={draftMax}
+                activeFiltersCount={activeFiltersCount}
+                setCategory={setCategory}
+                setSearchParams={(p) => setSearchParams(p)}
+                setPage={setPage}
+                setDraftMin={setDraftMin}
+                setDraftMax={setDraftMax}
+                handleApplyFilters={handleApplyFilters}
+                handleClearFilters={handleClearFilters}
+              />
             </div>
           </aside>
 
