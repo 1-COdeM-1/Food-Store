@@ -115,6 +115,9 @@ export function ProductPage() {
     ? product.images
     : [product.image];
 
+  // True only when at least one real image URL exists
+  const hasImage = images.some(Boolean);
+
   return (
     <div className="animate-fade-in">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
@@ -153,40 +156,53 @@ export function ProductPage() {
           {t('back')}
         </Button>
 
-        {/* Product Detail */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Images */}
-          <div className="space-y-4">
-            <div className="aspect-square rounded-2xl overflow-hidden bg-muted border border-border">
-              <img
-                src={images[selectedImage]}
-                alt={displayTitle}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {images.map((img, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedImage(i)}
-                    className={cn(
-                      'w-20 h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 shrink-0',
-                      selectedImage === i
-                        ? 'border-primary'
-                        : 'border-transparent hover:border-border'
-                    )}
-                  >
-                    <img
-                      src={img}
-                      alt={`${displayTitle} - ${i + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
+        {/* Product Detail
+             – 2 columns (image | info) when an image is available
+             – 1 column (info only, full-width) when there is no image */}
+        <div className={cn(
+          'gap-8 lg:gap-12',
+          hasImage
+            ? 'grid grid-cols-1 lg:grid-cols-2'
+            : 'flex flex-col'
+        )}>
+          {/* Images — rendered only when at least one URL exists */}
+          {hasImage && (
+            <div className="space-y-4">
+              {/* Main image */}
+              <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-border">
+                <img
+                  src={images[selectedImage]}
+                  alt={displayTitle}
+                  className="w-full h-full object-cover"
+                />
               </div>
-            )}
-          </div>
+              {/* Thumbnail strip — only when more than one image */}
+              {images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {images.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImage(i)}
+                      className={cn(
+                        'w-20 h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 shrink-0',
+                        selectedImage === i
+                          ? 'border-primary'
+                          : 'border-transparent hover:border-border'
+                      )}
+                    >
+                      {img ? (
+                        <img
+                          src={img}
+                          alt={`${displayTitle} - ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Info */}
           <div className="space-y-6">
@@ -242,8 +258,8 @@ export function ProductPage() {
               )}
             </div>
 
-            {/* Description */}
-            <p className="text-muted-foreground leading-relaxed">
+            {/* Description — slightly larger text for readability */}
+            <p className="text-3xl text-muted-foreground leading-relaxed">
               {displayDescription}
             </p>
 

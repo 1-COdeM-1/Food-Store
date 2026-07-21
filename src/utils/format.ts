@@ -36,7 +36,7 @@ export function generateWhatsAppUrl(
 
   const message =
     locale === 'ar'
-      ? `مرحباً، أود الاستفسار عن المنتج: ${productName} - السعر: $${productPrice}`
+      ? `مرحباً، اريد ان اطلب المنتج: ${productName} - السعر: $${productPrice}`
       : `Hello, I would like to inquire about: ${productName} - Price: $${productPrice}`;
   const encodedMessage = encodeURIComponent(message);
   return `https://wa.me/${cleanPhone}?text=${encodedMessage}`;

@@ -5,6 +5,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { cn } from '@/utils/cn';
 import { formatPrice, generateWhatsAppUrl } from '@/utils/format';
+import { FoodImagePlaceholder } from '@/components/shared/FoodImagePlaceholder';
 import type { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 
@@ -77,13 +78,16 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
       >
         {/* Image */}
         <div className="relative w-full sm:w-48 h-48 sm:h-40 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
-          <img
-            src={product.image}
-
-            alt={displayTitle}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
+          {product.image ? (
+            <img
+              src={product.image}
+              alt={displayTitle}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <FoodImagePlaceholder />
+          )}
           {discountPercentage > 0 && (
             <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
               -{discountPercentage}%
@@ -177,21 +181,26 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
     >
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden bg-muted">
-        <img
-          src={product.image}
-          alt={displayTitle}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={displayTitle}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <FoodImagePlaceholder />
+        )}
 
         {/* Overlay Actions */}
         <div
           className={cn(
-            'absolute inset-0 bg-black/40 flex items-center justify-center gap-3',
+            'absolute inset-0 bg-black/40 flex items-center justify-center gap-3 flex-col ',
             'opacity-0 group-hover:opacity-100 transition-opacity duration-300'
           )}
         >
-          <Button
+          <div className='flex gap-3'> 
+            <Button
             variant="secondary"
             size="icon"
             className="h-10 w-10 rounded-full bg-white/90 text-gray-900 hover:bg-white shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
@@ -217,7 +226,9 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
           >
             <Heart className={cn('h-4 w-4', inWishlist && 'fill-current')} />
           </Button>
-          <Button
+          </div>
+          <div className='flex gap-3'>
+            <Button
             variant="secondary"
             size="icon"
             className="h-10 w-10 rounded-full bg-white/90 text-gray-900 hover:bg-white shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-100 hover:text-green-600"
@@ -235,17 +246,18 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
           >
             <Phone className="h-4 w-4" />
           </Button>
+          </div>
         </div>
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {discountPercentage > 0 && (
-            <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
+            <span className="bg-red-500 opacity-70 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
               -{discountPercentage}%
             </span>
           )}
           {product.featured && (
-            <span className="bg-primary text-primary-foreground text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
+            <span className="bg-primary opacity-70 text-primary-foreground text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
               {t('featured')}
             </span>
           )}
@@ -271,7 +283,7 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
         </p>
 
         <div className="mt-auto pt-3 flex flex-col gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row items-center gap-2">
             <span className="text-base font-bold text-primary">
               {formatPrice(sellPrice)}
             </span>
@@ -281,7 +293,7 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
               </span>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col md:flex-col gap-2">
             <Button
               variant="outline"
               size="sm"

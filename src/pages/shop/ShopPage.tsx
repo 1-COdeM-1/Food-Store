@@ -12,7 +12,6 @@ import { productService } from '@/services/productService';
 import { ProductCard } from '@/components/shared/ProductCard';
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Pagination } from '@/components/shared/Pagination';
 import { useLanguageStore } from '@/store/languageStore';
 import { useFilterStore } from '@/store/filterStore';
 import { SORT_OPTIONS } from '@/constants';
@@ -20,10 +19,10 @@ import { cn } from '@/utils/cn';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRealtimeProducts } from '@/hooks/useRealtimeProducts';
+import { CategoryCard } from '@/components/shared/CategoryCard';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { Product, SortOption } from '@/types';
 import type { DynamicCategory } from '@/services/productService';
-
-const PAGE_SIZE = 12;
 
 interface FilterContentProps {
   t: (key: string) => string;
@@ -35,7 +34,6 @@ interface FilterContentProps {
   activeFiltersCount: number;
   setCategory: (cat: string | null) => void;
   setSearchParams: (params: Record<string, string>) => void;
-  setPage: (page: number) => void;
   setDraftMin: (val: number) => void;
   setDraftMax: (val: string) => void;
   handleApplyFilters: () => void;
@@ -52,7 +50,6 @@ function FilterContent({
   activeFiltersCount,
   setCategory,
   setSearchParams,
-  setPage,
   setDraftMin,
   setDraftMax,
   handleApplyFilters,
@@ -70,7 +67,6 @@ function FilterContent({
             onClick={() => {
               setCategory(null);
               setSearchParams({});
-              setPage(1);
             }}
             className={cn(
               'w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200',
@@ -84,10 +80,7 @@ function FilterContent({
           {categories.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => {
-                setCategory(cat.id);
-                setPage(1);
-              }}
+              onClick={() => setCategory(cat.id)}
               className={cn(
                 'w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200',
                 category === cat.id
@@ -183,8 +176,6 @@ export function ShopPage() {
   } = useFilterStore();
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [categories, setCategories] = useState<DynamicCategory[]>([]);
@@ -201,13 +192,13 @@ export function ShopPage() {
     const min = Math.max(0, draftMin);
     const max = draftMax === '' ? Infinity : Math.max(min, Number(draftMax));
     setPriceRange([min, max]);
-    setPage(1);
   };
 
   // Sync draft back when priceRange is reset externally (e.g. Clear Filters)
   useEffect(() => {
     setDraftMin(priceRange[0]);
     setDraftMax(priceRange[1] === Infinity ? '' : String(priceRange[1]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceRange[0], priceRange[1]]);
 
   // Sync URL category param with store
@@ -219,53 +210,43 @@ export function ShopPage() {
 
   // Load dynamic categories from live product data
   useEffect(() => {
-    const loadCategories = async () => {
-      const cats = await productService.getDynamicCategories();
-      setCategories(cats);
-    };
-    loadCategories();
+    productService.getDynamicCategories().then(setCategories);
   }, []);
 
-  // Load products
+  // Load ALL products matching current filters — no pagination
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await productService.getPaginatedProducts(page, PAGE_SIZE, {
+      const data = await productService.getProducts({
         category,
         searchQuery: searchQuery || undefined,
         priceRange,
         sortBy,
       });
-      setProducts(result.data);
-      setTotal(result.total);
+      setProducts(data);
     } catch (error) {
       console.error('Failed to load products:', error);
     } finally {
       setLoading(false);
     }
-  }, [page, category, searchQuery, priceRange, sortBy]);
+  }, [category, searchQuery, priceRange, sortBy]);
 
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
 
-  // Keep a stable ref to loadProducts so the realtime callback
-  // always calls the latest version without re-subscribing
+  // Keep a stable ref so the realtime callback always calls the latest version
   const loadProductsRef = useRef(loadProducts);
   useEffect(() => {
     loadProductsRef.current = loadProducts;
   }, [loadProducts]);
 
-  // Subscribe to live DB changes – fires INSERT / UPDATE / DELETE events
-  // without needing a page refresh. The `onAnyChange` callback also re-runs
-  // the full query so pagination totals stay accurate.
+  // Subscribe to live DB changes
   useRealtimeProducts({
     setProducts,
     enabled: !loading,
     onAnyChange: () => void loadProductsRef.current(),
   });
-
-  const totalPages = useMemo(() => Math.ceil(total / PAGE_SIZE), [total]);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -278,10 +259,7 @@ export function ShopPage() {
   const handleClearFilters = () => {
     clearFilters();
     setSearchParams({});
-    setPage(1);
   };
-
-
 
   return (
     <div className="min-h-screen animate-fade-in">
@@ -292,8 +270,32 @@ export function ShopPage() {
             {t('shop')}
           </h1>
           <p className="mt-2 text-muted-foreground">
-            {total} {t('products')}
+            {products.length} {t('products')}
           </p>
+        </div>
+
+        {/* ── Category Grid ─────────────────────────────────────────────────
+             Mirrors the home-page style.
+             Mobile: 2-column grid  |  sm: 3 cols  |  lg: auto-fill wide  */}
+        <div className="mb-8">
+          {categories.length === 0 && loading ? (
+            // Skeleton placeholders while categories load
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-border p-5 space-y-3">
+                  <Skeleton className="h-10 w-10 rounded-xl" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-3 w-14" />
+                </div>
+              ))}
+            </div>
+          ) : categories.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+              {categories.map((cat, idx) => (
+                <CategoryCard key={cat.id} category={cat} index={idx} />
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {/* Toolbar */}
@@ -305,18 +307,12 @@ export function ShopPage() {
               type="text"
               placeholder={t('searchPlaceholder')}
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-10 rounded-xl"
             />
             {searchQuery && (
               <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setPage(1);
-                }}
+                onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="w-4 h-4" />
@@ -324,7 +320,11 @@ export function ShopPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Controls row — wraps on mobile into two lines:
+               line 1: Filters button + Sort dropdown
+               line 2: View-mode toggle
+               On sm+ all three stay on one line */}
+          <div className="flex flex-wrap items-center gap-2">
             {/* Mobile Filter Toggle */}
             <Button
               variant="outline"
@@ -353,8 +353,10 @@ export function ShopPage() {
               ))}
             </select>
 
-            {/* View Mode Toggle */}
-            <div className="hidden sm:flex items-center border border-input rounded-xl overflow-hidden">
+            {/* View Mode Toggle
+                – w-full on mobile so it forces a new line after Filters+Sort
+                – sm:w-auto to shrink back inline on wider screens */}
+            <div className="w-full sm:w-auto flex items-center border border-input rounded-xl overflow-hidden">
               <Button
                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
                 size="icon"
@@ -389,21 +391,20 @@ export function ShopPage() {
               </Button>
             </div>
             <FilterContent
-                t={t}
-                language={language}
-                categories={categories}
-                category={category}
-                draftMin={draftMin}
-                draftMax={draftMax}
-                activeFiltersCount={activeFiltersCount}
-                setCategory={setCategory}
-                setSearchParams={(p) => setSearchParams(p)}
-                setPage={setPage}
-                setDraftMin={setDraftMin}
-                setDraftMax={setDraftMax}
-                handleApplyFilters={handleApplyFilters}
-                handleClearFilters={handleClearFilters}
-              />
+              t={t}
+              language={language}
+              categories={categories}
+              category={category}
+              draftMin={draftMin}
+              draftMax={draftMax}
+              activeFiltersCount={activeFiltersCount}
+              setCategory={setCategory}
+              setSearchParams={(p) => setSearchParams(p)}
+              setDraftMin={setDraftMin}
+              setDraftMax={setDraftMax}
+              handleApplyFilters={handleApplyFilters}
+              handleClearFilters={handleClearFilters}
+            />
           </div>
         )}
 
@@ -425,7 +426,6 @@ export function ShopPage() {
                 activeFiltersCount={activeFiltersCount}
                 setCategory={setCategory}
                 setSearchParams={(p) => setSearchParams(p)}
-                setPage={setPage}
                 setDraftMin={setDraftMin}
                 setDraftMax={setDraftMax}
                 handleApplyFilters={handleApplyFilters}
@@ -434,10 +434,10 @@ export function ShopPage() {
             </div>
           </aside>
 
-          {/* Products */}
+          {/* Products — all rendered at once, no pagination */}
           <div className="flex-1 min-w-0">
             {loading ? (
-              <LoadingSkeleton count={PAGE_SIZE} />
+              <LoadingSkeleton count={12} />
             ) : products.length === 0 ? (
               <EmptyState
                 variant="search"
@@ -445,31 +445,22 @@ export function ShopPage() {
                 onAction={handleClearFilters}
               />
             ) : (
-              <>
-                <div
-                  className={cn(
-                    viewMode === 'grid'
-                      ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6'
-                      : 'flex flex-col gap-4'
-                  )}
-                >
-                  {products.map((product, index) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      index={index}
-                      viewMode={viewMode}
-                    />
-                  ))}
-                </div>
-
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  totalItems={total}
-                  onPageChange={setPage}
-                />
-              </>
+              <div
+                className={cn(
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-3 sm:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6'
+                    : 'flex flex-col gap-4'
+                )}
+              >
+                {products.map((product, index) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    index={index}
+                    viewMode={viewMode}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </div>
