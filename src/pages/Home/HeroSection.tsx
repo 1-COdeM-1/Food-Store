@@ -112,7 +112,7 @@ export function HeroSection() {
                 size="lg"
                 onClick={() => navigate('/shop')}
                 className={cn(
-                  'h-12 px-8 text-base font-semibold rounded-xl',
+                  'h-12 px-8 text-base font-bold rounded-xl',
                   'shadow-glow hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5'
                 )}
               >
