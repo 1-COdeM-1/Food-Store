@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -180,11 +180,16 @@ export function ShopPage() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [categories, setCategories] = useState<DynamicCategory[]>([]);
 
+  // Destructure into stable primitives so useCallback / useEffect deps stay
+  // stable — a plain array reference changes on every Zustand render because
+  // persist middleware deserialises it fresh each time.
+  const [priceMin, priceMax] = priceRange;
+
   // Local draft state for price inputs — decoupled from the filter store
-  const [draftMin, setDraftMin] = useState<number>(priceRange[0]);
-  // Empty string means "no upper limit" (Infinity)
+  const [draftMin, setDraftMin] = useState<number>(priceMin);
+  // Empty string means “no upper limit” (Infinity)
   const [draftMax, setDraftMax] = useState<string>(
-    priceRange[1] === Infinity ? '' : String(priceRange[1])
+    priceMax === Infinity ? '' : String(priceMax)
   );
 
   // Apply price draft to store only when user clicks Search
@@ -196,17 +201,17 @@ export function ShopPage() {
 
   // Sync draft back when priceRange is reset externally (e.g. Clear Filters)
   useEffect(() => {
-    setDraftMin(priceRange[0]);
-    setDraftMax(priceRange[1] === Infinity ? '' : String(priceRange[1]));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [priceRange[0], priceRange[1]]);
+    setDraftMin(priceMin);
+    setDraftMax(priceMax === Infinity ? '' : String(priceMax));
+  }, [priceMin, priceMax]);
 
-  // Sync URL category param with store
+  // Sync URL category param with store — guard against unnecessary updates
+  // to avoid triggering a loadProducts cascade when nothing actually changed.
   useEffect(() => {
-    if (categoryParam) {
+    if (categoryParam && categoryParam !== category) {
       setCategory(categoryParam);
     }
-  }, [categoryParam, setCategory]);
+  }, [categoryParam, category, setCategory]);
 
   // Load dynamic categories from live product data
   useEffect(() => {
@@ -220,7 +225,7 @@ export function ShopPage() {
       const data = await productService.getProducts({
         category,
         searchQuery: searchQuery || undefined,
-        priceRange,
+        priceRange: [priceMin, priceMax],
         sortBy,
       });
       setProducts(data);
@@ -229,23 +234,19 @@ export function ShopPage() {
     } finally {
       setLoading(false);
     }
-  }, [category, searchQuery, priceRange, sortBy]);
+  // priceMin / priceMax are stable primitives — no spurious array identity changes
+  }, [category, searchQuery, priceMin, priceMax, sortBy]);
 
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
 
-  // Keep a stable ref so the realtime callback always calls the latest version
-  const loadProductsRef = useRef(loadProducts);
-  useEffect(() => {
-    loadProductsRef.current = loadProducts;
-  }, [loadProducts]);
-
   // Subscribe to live DB changes
+  // The hook patches the product list in-place (INSERT/UPDATE/DELETE), so we
+  // no longer need onAnyChange to trigger a costly full refetch.
   useRealtimeProducts({
     setProducts,
     enabled: !loading,
-    onAnyChange: () => void loadProductsRef.current(),
   });
 
   const activeFiltersCount = useMemo(() => {

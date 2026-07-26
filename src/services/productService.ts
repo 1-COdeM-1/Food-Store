@@ -2,6 +2,49 @@ import { supabase } from '@/lib/supabaseClient';
 import { CATEGORIES } from '@/constants';
 import type { Product, Category } from '@/types';
 
+// ─── Module-level product cache ─────────────────────────────────────────────
+// Keeps one copy of the full product list in memory so that getProducts() and
+// getDynamicCategories() share a single Supabase round-trip per page session.
+// The cache is automatically invalidated by the realtime hook whenever the DB
+// changes, so the next navigation will always fetch fresh data.
+
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+interface ProductCacheEntry {
+  data: Product[];
+  timestamp: number;
+}
+
+let _productCache: ProductCacheEntry | null = null;
+
+/** Call this to mark the cache stale (e.g. from the realtime hook). */
+export function invalidateProductCache(): void {
+  _productCache = null;
+}
+
+/** Internal helper — fetches all rows from Supabase and populates the cache. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function _fetchAllFromDB(): Promise<Product[]> {
+  const now = Date.now();
+
+  // Serve from cache when still fresh
+  if (_productCache && now - _productCache.timestamp < CACHE_TTL_MS) {
+    return _productCache.data;
+  }
+
+  const { data, error } = await supabase.from('Products').select('*');
+
+  if (error) {
+    console.error('[productCache] Supabase error:', error.message);
+    return _productCache?.data ?? []; // return stale data rather than nothing
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const products = ((data ?? []) as Record<string, any>[]).map(normalizeProduct);
+  _productCache = { data: products, timestamp: now };
+  return products;
+}
+
 // ─── Filter / Pagination interfaces ────────────────────────────────────────
 
 export interface ProductFilters {
@@ -63,24 +106,16 @@ export function normalizeProduct(raw: Record<string, any>): Product {
 
 // ─── CRUD helpers ───────────────────────────────────────────────────────────
 
-/** Fetch all products, with optional filters applied in-memory after fetching. */
+/** Fetch all products, with optional filters applied in-memory after fetching.
+ *  Uses the module-level cache — at most one Supabase call every 2 minutes. */
 export async function getProducts(filters?: ProductFilters): Promise<Product[]> {
-  let query = supabase.from('Products').select('*');
+  // Pull from cache (or Supabase on first / stale call)
+  let result: Product[] = await _fetchAllFromDB();
 
-  // Only apply featured server-side (boolean, no casing issue)
+  // featured filter — client-side against cached data
   if (filters?.featured) {
-    query = query.eq('featured', true);
+    result = result.filter((p) => p.featured);
   }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('[getProducts] Supabase error:', error.message);
-    return [];
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let result: Product[] = ((data ?? []) as Record<string, any>[]).map(normalizeProduct);
 
   // Category filter — case-insensitive client-side comparison
   // Handles mismatches like 'fashion' (filter id) vs 'Fashion' (DB value)
@@ -150,55 +185,28 @@ export async function getProductById(id: string | number): Promise<Product | nul
   return normalizeProduct(data as Record<string, any>);
 }
 
-/** Fetch only featured products. */
+/** Fetch only featured products — served from cache, no extra round-trip. */
 export async function getFeaturedProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('Products')
-    .select('*')
-    .eq('featured', true);
-
-  if (error) {
-    console.error('[getFeaturedProducts] Supabase error:', error.message);
-    return [];
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ((data ?? []) as Record<string, any>[]).map(normalizeProduct);
+  const all = await _fetchAllFromDB();
+  return all.filter((p) => p.featured);
 }
 
-/** Fetch products in the same category, excluding the current product. */
+/** Fetch products in the same category, excluding the current product.
+ *  Uses the shared cache — avoids two extra Supabase round-trips. */
 export async function getRelatedProducts(
   productId: string | number,
   limit: number = 4
 ): Promise<Product[]> {
-  const { data: productData, error: productError } = await supabase
-    .from('Products')
-    .select('category')
-    .eq('id', Number(productId))
-    .single();
+  const all = await _fetchAllFromDB();
+  const numId = Number(productId);
 
-  if (productError || !productData) {
-    console.error('[getRelatedProducts] Could not fetch source product:', productError?.message);
-    return [];
-  }
+  // Find the source product's category from cache
+  const source = all.find((p) => p.id === numId);
+  if (!source) return [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sourceCategory = (productData as Record<string, any>).category ?? '';
-
-  const { data, error } = await supabase
-    .from('Products')
-    .select('*')
-    .eq('category', sourceCategory)
-    .neq('id', Number(productId))
-    .limit(limit);
-
-  if (error) {
-    console.error('[getRelatedProducts] Supabase error:', error.message);
-    return [];
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ((data ?? []) as Record<string, any>[]).map(normalizeProduct);
+  return all
+    .filter((p) => p.id !== numId && p.category === source.category)
+    .slice(0, limit);
 }
 
 /** Paginated product fetch with filters. */
@@ -232,6 +240,7 @@ export async function addProduct(
     return null;
   }
 
+  invalidateProductCache(); // ensure next read reflects the new row
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return data ? normalizeProduct(data as Record<string, any>) : null;
 }
@@ -253,6 +262,7 @@ export async function updateProduct(
     return null;
   }
 
+  invalidateProductCache(); // stale after an update
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return data ? normalizeProduct(data as Record<string, any>) : null;
 }
@@ -266,6 +276,7 @@ export async function deleteProduct(id: number): Promise<boolean> {
     return false;
   }
 
+  invalidateProductCache(); // stale after a delete
   return true;
 }
 

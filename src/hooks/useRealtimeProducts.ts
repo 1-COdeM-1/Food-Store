@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
-import { normalizeProduct } from '@/services/productService';
+import { normalizeProduct, invalidateProductCache } from '@/services/productService';
 import type { Product } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -61,6 +61,8 @@ export function useRealtimeProducts({
             if (prev.some((p) => p.id === newProduct.id)) return prev;
             return [newProduct, ...prev];
           });
+          // Mark cache stale — next full fetch will get the new row
+          invalidateProductCache();
           onAnyChange?.();
         }
       )
@@ -73,6 +75,8 @@ export function useRealtimeProducts({
           setProducts((prev) =>
             prev.map((p) => (p.id === updated.id ? updated : p))
           );
+          // Mark cache stale — next full fetch will reflect the update
+          invalidateProductCache();
           onAnyChange?.();
         }
       )
@@ -82,6 +86,8 @@ export function useRealtimeProducts({
         (payload) => {
           const deletedId = (payload.old as { id: number }).id;
           setProducts((prev) => prev.filter((p) => p.id !== deletedId));
+          // Mark cache stale — next full fetch will exclude the deleted row
+          invalidateProductCache();
           onAnyChange?.();
         }
       )
