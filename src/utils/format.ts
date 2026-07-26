@@ -34,10 +34,13 @@ export function generateWhatsAppUrl(
     cleanPhone = '20' + cleanPhone.slice(1);
   }
 
+  // Format price properly as EGP using the right locale
+  const formattedPrice = formatPrice(productPrice, locale === 'ar' ? 'ar-EG' : 'en-US');
+
   const message =
     locale === 'ar'
-      ? `مرحباً، اريد ان اطلب المنتج: ${productName} - السعر: $${productPrice}`
-      : `Hello, I would like to inquire about: ${productName} - Price: $${productPrice}`;
+      ? `مرحباً، اريد ان اطلب المنتج: ${productName} - السعر: ${formattedPrice}`
+      : `Hello, I would like to inquire about: ${productName} - Price: ${formattedPrice}`;
   const encodedMessage = encodeURIComponent(message);
   return `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
 }

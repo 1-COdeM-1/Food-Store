@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Heart, MessageCircle, Eye, Phone } from 'lucide-react';
@@ -21,6 +22,7 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
   const { toggleItem, isInWishlist } = useWishlistStore();
   const navigate = useNavigate();
   const inWishlist = isInWishlist(product.id);
+  const [imgError, setImgError] = useState(false);
   const discountPercentage = product.discount || 0;
   const originalPrice = product.price;
   const sellPrice = discountPercentage > 0 
@@ -78,12 +80,14 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
       >
         {/* Image */}
         <div className="relative w-full sm:w-48 h-48 sm:h-40 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
-          {product.image ? (
+          {product.image && !imgError ? (
             <img
               src={product.image}
               alt={displayTitle}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               loading="lazy"
+              crossOrigin="anonymous"
+              onError={() => setImgError(true)}
             />
           ) : (
             <FoodImagePlaceholder />
@@ -181,12 +185,14 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }: ProductCa
     >
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden bg-muted">
-        {product.image ? (
+        {product.image && !imgError ? (
           <img
             src={product.image}
             alt={displayTitle}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
+            crossOrigin="anonymous"
+            onError={() => setImgError(true)}
           />
         ) : (
           <FoodImagePlaceholder />

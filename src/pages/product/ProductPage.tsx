@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -13,6 +13,7 @@ import {
 import { productService } from '@/services/productService';
 import { ProductCard } from '@/components/shared/ProductCard';
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
+import { FoodImagePlaceholder } from '@/components/shared/FoodImagePlaceholder';
 import { useLanguageStore } from '@/store/languageStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { cn } from '@/utils/cn';
@@ -32,6 +33,12 @@ export function ProductPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
+  // Track which image indices have failed to load (broken Cloudflare URLs, etc.)
+  const [imgErrors, setImgErrors] = useState<Set<number>>(new Set());
+
+  const handleImgError = useCallback((index: number) => {
+    setImgErrors((prev) => new Set(prev).add(index));
+  }, []);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -170,11 +177,17 @@ export function ProductPage() {
             <div className="space-y-4">
               {/* Main image */}
               <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-border">
-                <img
-                  src={images[selectedImage]}
-                  alt={displayTitle}
-                  className="w-full h-full object-cover"
-                />
+                {images[selectedImage] && !imgErrors.has(selectedImage) ? (
+                  <img
+                    src={images[selectedImage]}
+                    alt={displayTitle}
+                    className="w-full h-full object-cover"
+                    crossOrigin="anonymous"
+                    onError={() => handleImgError(selectedImage)}
+                  />
+                ) : (
+                  <FoodImagePlaceholder />
+                )}
               </div>
               {/* Thumbnail strip — only when more than one image */}
               {images.length > 1 && (
@@ -190,13 +203,17 @@ export function ProductPage() {
                           : 'border-transparent hover:border-border'
                       )}
                     >
-                      {img ? (
+                      {img && !imgErrors.has(i) ? (
                         <img
                           src={img}
                           alt={`${displayTitle} - ${i + 1}`}
                           className="w-full h-full object-cover"
+                          crossOrigin="anonymous"
+                          onError={() => handleImgError(i)}
                         />
-                      ) : null}
+                      ) : (
+                        <FoodImagePlaceholder />
+                      )}
                     </button>
                   ))}
                 </div>
