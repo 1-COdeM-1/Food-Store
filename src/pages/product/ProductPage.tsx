@@ -10,7 +10,7 @@ import {
   Package,
   Phone,
 } from 'lucide-react';
-import { productService } from '@/services/productService';
+import { useProductById, useRelatedProducts } from '@/hooks/useProducts';
 import { ProductCard } from '@/components/shared/ProductCard';
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
 import { FoodImagePlaceholder } from '@/components/shared/FoodImagePlaceholder';
@@ -19,7 +19,7 @@ import { useWishlistStore } from '@/store/wishlistStore';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/ui/button';
 import { formatPrice, generateWhatsAppUrl } from '@/utils/format';
-import type { Product } from '@/types';
+// removed unused Product import
 
 export function ProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,10 +28,9 @@ export function ProductPage() {
   const navigate = useNavigate();
   const { toggleItem, isInWishlist } = useWishlistStore();
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: product, isLoading: loading, error: queryError } = useProductById(id);
+  const { data: relatedProducts = [] } = useRelatedProducts(id, 4);
+
   const [selectedImage, setSelectedImage] = useState(0);
   // Track which image indices have failed to load (broken Cloudflare URLs, etc.)
   const [imgErrors, setImgErrors] = useState<Set<number>>(new Set());
@@ -44,46 +43,18 @@ export function ProductPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
 
-  useEffect(() => {
-    const loadProduct = async () => {
-      if (!id) {
-        setError('No product ID provided.');
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await productService.getProductById(id);
-        if (data) {
-          setProduct(data);
-          const related = await productService.getRelatedProducts(id, 4);
-          setRelatedProducts(related);
-        } else {
-          setError(`Product with ID "${id}" was not found.`);
-        }
-      } catch (err) {
-        console.error('Failed to load product:', err);
-        setError('Failed to load product. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProduct();
-  }, [id]);
-
   if (loading) {
     return <LoadingSkeleton variant="detail" />;
   }
 
-  if (error || !product) {
+  if (queryError || !product) {
     return (
       <div className="container mx-auto px-4 py-16 text-center space-y-4">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 mb-4">
           <Package className="w-8 h-8 text-destructive" />
         </div>
         <h2 className="text-2xl font-bold text-foreground">
-          {error ?? t('error.404.title')}
+          {queryError ? t('error.404.title') : t('error.404.title')}
         </h2>
         <p className="text-muted-foreground text-sm">
           Product ID: <code className="bg-muted px-2 py-0.5 rounded">{id}</code>

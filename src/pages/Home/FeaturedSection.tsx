@@ -1,35 +1,21 @@
-import { useEffect, useState } from 'react';
+// removed unused react imports
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight } from 'lucide-react';
-import { productService } from '@/services/productService';
+import { useFeaturedProducts } from '@/hooks/useProducts';
 import { ProductCard } from '@/components/shared/ProductCard';
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
 import { useLanguageStore } from '@/store/languageStore';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/ui/button';
-import type { Product } from '@/types';
+// removed unused product import
 
 export function FeaturedSection() {
   const { t } = useTranslation('common');
   const { dir } = useLanguageStore();
   const navigate = useNavigate();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const data = await productService.getFeaturedProducts();
-        setProducts(data.slice(0, 8));
-      } catch (error) {
-        console.error('Failed to load featured products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProducts();
-  }, []);
+  const { data = [], isLoading: loading } = useFeaturedProducts();
+  const products = data.slice(0, 8);
 
   return (
     <section className="py-16 lg:py-24 bg-muted/30">

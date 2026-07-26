@@ -2,49 +2,6 @@ import { supabase } from '@/lib/supabaseClient';
 import { CATEGORIES } from '@/constants';
 import type { Product, Category } from '@/types';
 
-// ─── Module-level product cache ─────────────────────────────────────────────
-// Keeps one copy of the full product list in memory so that getProducts() and
-// getDynamicCategories() share a single Supabase round-trip per page session.
-// The cache is automatically invalidated by the realtime hook whenever the DB
-// changes, so the next navigation will always fetch fresh data.
-
-const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
-
-interface ProductCacheEntry {
-  data: Product[];
-  timestamp: number;
-}
-
-let _productCache: ProductCacheEntry | null = null;
-
-/** Call this to mark the cache stale (e.g. from the realtime hook). */
-export function invalidateProductCache(): void {
-  _productCache = null;
-}
-
-/** Internal helper — fetches all rows from Supabase and populates the cache. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function _fetchAllFromDB(): Promise<Product[]> {
-  const now = Date.now();
-
-  // Serve from cache when still fresh
-  if (_productCache && now - _productCache.timestamp < CACHE_TTL_MS) {
-    return _productCache.data;
-  }
-
-  const { data, error } = await supabase.from('Products').select('*');
-
-  if (error) {
-    console.error('[productCache] Supabase error:', error.message);
-    return _productCache?.data ?? []; // return stale data rather than nothing
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const products = ((data ?? []) as Record<string, any>[]).map(normalizeProduct);
-  _productCache = { data: products, timestamp: now };
-  return products;
-}
-
 // ─── Filter / Pagination interfaces ────────────────────────────────────────
 
 export interface ProductFilters {
@@ -63,12 +20,17 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
+export interface DynamicCategory {
+  id: string;
+  name: string;
+  nameAr: string;
+  count: number;
+}
+
 // ─── Column normalizer ──────────────────────────────────────────────────────
-// Supabase returns raw DB column names. This mapper normalises any variation
-// of column naming (snake_case, different casing) into the Product interface.
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeProduct(raw: Record<string, any>): Product {
-  // Resolve primary image: prefer images[0] if array exists, else image field
   const imagesArray: string[] = Array.isArray(raw.images)
     ? raw.images
     : raw.image
@@ -86,10 +48,8 @@ export function normalizeProduct(raw: Record<string, any>): Product {
     category:        raw.category        ?? raw.Category       ?? '',
     categoryAr:      raw.categoryAr      ?? raw.categoryAR     ?? raw.category_ar     ?? '',
     featured:        Boolean(raw.featured ?? raw.Featured ?? false),
-    // Primary image: first item in images array, or standalone image field
     image:           imagesArray[0]      ?? raw.image          ?? '',
     images:          imagesArray.length  ? imagesArray         : undefined,
-    // whatsNumber is the actual column name in this project's Supabase table
     whatsappNumber:  raw.whatsappNumber  ?? raw.whatsNumber    ?? raw.whatsapp_number ?? raw.phone ?? '',
     createdAt:       raw.createdAt       ?? raw.created_at     ?? undefined,
     rating:          Number(raw.rating   ?? raw.Rating         ?? 0),
@@ -104,21 +64,95 @@ export function normalizeProduct(raw: Record<string, any>): Product {
   };
 }
 
-// ─── CRUD helpers ───────────────────────────────────────────────────────────
+// ─── Fetchers (To be wrapped by React Query) ───────────────────────────────
 
-/** Fetch all products, with optional filters applied in-memory after fetching.
- *  Uses the module-level cache — at most one Supabase call every 2 minutes. */
-export async function getProducts(filters?: ProductFilters): Promise<Product[]> {
-  // Pull from cache (or Supabase on first / stale call)
-  let result: Product[] = await _fetchAllFromDB();
+export async function fetchAllProducts(): Promise<Product[]> {
+  const { data, error } = await supabase.from('Products').select('*');
 
-  // featured filter — client-side against cached data
+  if (error) {
+    console.error('[fetchAllProducts] Supabase error:', error.message);
+    throw error;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as Record<string, any>[]).map(normalizeProduct);
+}
+
+export async function fetchProductById(id: string | number): Promise<Product | null> {
+  const { data, error } = await supabase
+    .from('Products')
+    .select('*')
+    .eq('id', Number(id))
+    .single();
+
+  if (error) {
+    console.error('[fetchProductById] Supabase error:', error.message);
+    throw error;
+  }
+
+  if (!data) return null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return normalizeProduct(data as Record<string, any>);
+}
+
+export async function addProductToDB(
+  product: Omit<Product, 'id' | 'createdAt'>
+): Promise<Product | null> {
+  const { data, error } = await supabase
+    .from('Products')
+    .insert([product])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[addProduct] Supabase error:', error.message);
+    throw error;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return data ? normalizeProduct(data as Record<string, any>) : null;
+}
+
+export async function updateProductInDB(
+  id: number,
+  updates: Partial<Omit<Product, 'id' | 'createdAt'>>
+): Promise<Product | null> {
+  const { data, error } = await supabase
+    .from('Products')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[updateProduct] Supabase error:', error.message);
+    throw error;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return data ? normalizeProduct(data as Record<string, any>) : null;
+}
+
+export async function deleteProductFromDB(id: number): Promise<boolean> {
+  const { error } = await supabase.from('Products').delete().eq('id', id);
+
+  if (error) {
+    console.error('[deleteProduct] Supabase error:', error.message);
+    throw error;
+  }
+
+  return true;
+}
+
+// ─── Pure Functions (For React Query Selectors) ─────────────────────────────
+
+export function filterProducts(products: Product[], filters?: ProductFilters): Product[] {
+  let result = products;
+
   if (filters?.featured) {
     result = result.filter((p) => p.featured);
   }
 
-  // Category filter — case-insensitive client-side comparison
-  // Handles mismatches like 'fashion' (filter id) vs 'Fashion' (DB value)
   if (filters?.category) {
     const catLower = filters.category.toLowerCase();
     result = result.filter(
@@ -128,7 +162,6 @@ export async function getProducts(filters?: ProductFilters): Promise<Product[]> 
     );
   }
 
-  // Full-text search — client-side across all text fields
   if (filters?.searchQuery) {
     const q = filters.searchQuery.toLowerCase();
     result = result.filter(
@@ -143,14 +176,11 @@ export async function getProducts(filters?: ProductFilters): Promise<Product[]> 
     );
   }
 
-  // Price range filter — only apply when a real range has been set
   if (filters?.priceRange) {
     const [min, max] = filters.priceRange;
-    // Skip filter if at the default "no limit" state [0, Infinity]
     const isDefaultRange = min === 0 && max === Infinity;
     if (!isDefaultRange) {
       result = result.filter((p) => {
-        // Compare against the actual selling price (after discount)
         const discount = p.discount || 0;
         const sellPrice = discount > 0 ? p.price - p.price * (discount / 100) : p.price;
         return sellPrice >= min && (max === Infinity || sellPrice <= max);
@@ -158,7 +188,6 @@ export async function getProducts(filters?: ProductFilters): Promise<Product[]> 
     }
   }
 
-  // Sorting
   if (filters?.sortBy) {
     result = sortProducts(result, filters.sortBy);
   }
@@ -166,152 +195,7 @@ export async function getProducts(filters?: ProductFilters): Promise<Product[]> 
   return result;
 }
 
-/** Fetch a single product by its numeric id. */
-export async function getProductById(id: string | number): Promise<Product | null> {
-  const { data, error } = await supabase
-    .from('Products')
-    .select('*')
-    .eq('id', Number(id))
-    .single();
-
-  if (error) {
-    console.error('[getProductById] Supabase error:', error.message);
-    return null;
-  }
-
-  if (!data) return null;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return normalizeProduct(data as Record<string, any>);
-}
-
-/** Fetch only featured products — served from cache, no extra round-trip. */
-export async function getFeaturedProducts(): Promise<Product[]> {
-  const all = await _fetchAllFromDB();
-  return all.filter((p) => p.featured);
-}
-
-/** Fetch products in the same category, excluding the current product.
- *  Uses the shared cache — avoids two extra Supabase round-trips. */
-export async function getRelatedProducts(
-  productId: string | number,
-  limit: number = 4
-): Promise<Product[]> {
-  const all = await _fetchAllFromDB();
-  const numId = Number(productId);
-
-  // Find the source product's category from cache
-  const source = all.find((p) => p.id === numId);
-  if (!source) return [];
-
-  return all
-    .filter((p) => p.id !== numId && p.category === source.category)
-    .slice(0, limit);
-}
-
-/** Paginated product fetch with filters. */
-export async function getPaginatedProducts(
-  page: number = 1,
-  pageSize: number = 12,
-  filters?: ProductFilters
-): Promise<PaginatedResult<Product>> {
-  const allProducts = await getProducts(filters);
-  const total = allProducts.length;
-  const totalPages = Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize;
-  const end = start + pageSize;
-  const data = allProducts.slice(start, end);
-
-  return { data, total, page, pageSize, totalPages };
-}
-
-/** Insert a new product row. */
-export async function addProduct(
-  product: Omit<Product, 'id' | 'createdAt'>
-): Promise<Product | null> {
-  const { data, error } = await supabase
-    .from('Products')
-    .insert([product])
-    .select()
-    .single();
-
-  if (error) {
-    console.error('[addProduct] Supabase error:', error.message);
-    return null;
-  }
-
-  invalidateProductCache(); // ensure next read reflects the new row
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return data ? normalizeProduct(data as Record<string, any>) : null;
-}
-
-/** Update an existing product by id. */
-export async function updateProduct(
-  id: number,
-  updates: Partial<Omit<Product, 'id' | 'createdAt'>>
-): Promise<Product | null> {
-  const { data, error } = await supabase
-    .from('Products')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('[updateProduct] Supabase error:', error.message);
-    return null;
-  }
-
-  invalidateProductCache(); // stale after an update
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return data ? normalizeProduct(data as Record<string, any>) : null;
-}
-
-/** Delete a product by id. Returns true on success. */
-export async function deleteProduct(id: number): Promise<boolean> {
-  const { error } = await supabase.from('Products').delete().eq('id', id);
-
-  if (error) {
-    console.error('[deleteProduct] Supabase error:', error.message);
-    return false;
-  }
-
-  invalidateProductCache(); // stale after a delete
-  return true;
-}
-
-// ─── Category helpers ──────────────────────────────────────────────────────
-
-/** Static categories (kept for backward-compat with CategorySection on Home page) */
-export async function getCategories(): Promise<Category[]> {
-  return CATEGORIES;
-}
-
-export async function getCategoryById(id: string): Promise<Category | null> {
-  return CATEGORIES.find((c) => c.id === id) ?? null;
-}
-
-/**
- * Dynamic category list derived from live product data.
- * - Deduplicates by case-insensitive category name
- * - Counts actual products per category
- * - Sorted by product count (highest first)
- */
-export interface DynamicCategory {
-  /** Lowercased category value — used as the filter key */
-  id: string;
-  /** Original category name from the DB (English) */
-  name: string;
-  /** Arabic category name from the DB */
-  nameAr: string;
-  /** Number of products in this category */
-  count: number;
-}
-
-export async function getDynamicCategories(): Promise<DynamicCategory[]> {
-  const products = await getProducts(); // fetch all, no filters
-
-  // Build a map keyed by lowercased category name for deduplication
+export function deriveDynamicCategories(products: Product[]): DynamicCategory[] {
   const map = new Map<string, { name: string; nameAr: string; count: number }>();
 
   for (const p of products) {
@@ -329,13 +213,10 @@ export async function getDynamicCategories(): Promise<DynamicCategory[]> {
     }
   }
 
-  // Convert to sorted array (most products first)
   return Array.from(map.entries())
     .map(([id, { name, nameAr, count }]) => ({ id, name, nameAr, count }))
     .sort((a, b) => b.count - a.count);
 }
-
-// ─── Private sort helper ────────────────────────────────────────────────────
 
 function sortProducts(products: Product[], sortBy: string): Product[] {
   const sorted = [...products];
@@ -358,20 +239,34 @@ function sortProducts(products: Product[], sortBy: string): Product[] {
   }
 }
 
-// ─── Backwards-compatible class wrapper ────────────────────────────────────
+// ─── Static categories ──────────────────────────────────────────────────────
 
+export async function getCategories(): Promise<Category[]> {
+  return CATEGORIES;
+}
+
+export async function getCategoryById(id: string): Promise<Category | null> {
+  return CATEGORIES.find((c) => c.id === id) ?? null;
+}
+
+// For backwards compatibility / incremental refactoring
 class ProductService {
-  getProducts = getProducts;
-  getProductById = getProductById;
-  getFeaturedProducts = getFeaturedProducts;
-  getRelatedProducts = getRelatedProducts;
-  getPaginatedProducts = getPaginatedProducts;
   getCategories = getCategories;
   getCategoryById = getCategoryById;
-  getDynamicCategories = getDynamicCategories;
-  addProduct = addProduct;
-  updateProduct = updateProduct;
-  deleteProduct = deleteProduct;
+  getDynamicCategories = async () => deriveDynamicCategories(await fetchAllProducts());
+  getProducts = async (filters?: ProductFilters) => filterProducts(await fetchAllProducts(), filters);
+  getFeaturedProducts = async () => filterProducts(await fetchAllProducts(), { featured: true });
+  getProductById = fetchProductById;
+  getRelatedProducts = async (id: string | number, limit: number = 4) => {
+    const all = await fetchAllProducts();
+    const numId = Number(id);
+    const source = all.find((p) => p.id === numId);
+    if (!source) return [];
+    return all.filter((p) => p.id !== numId && p.category === source.category).slice(0, limit);
+  };
+  addProduct = addProductToDB;
+  updateProduct = updateProductInDB;
+  deleteProduct = deleteProductFromDB;
 }
 
 export const productService = new ProductService();

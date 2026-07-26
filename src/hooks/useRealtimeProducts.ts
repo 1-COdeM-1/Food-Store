@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import { normalizeProduct, invalidateProductCache } from '@/services/productService';
+import { normalizeProduct } from '@/services/productService';
+import { PRODUCTS_QUERY_KEY } from '@/hooks/useProducts';
 import type { Product } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -9,45 +11,29 @@ import type { Product } from '@/types';
 // ---------------------------------------------------------------------------
 interface UseRealtimeProductsOptions {
   /**
-   * Called with a functional updater whenever a DB change arrives.
-   * Pass the `setProducts` dispatcher from useState<Product[]>.
-   */
-  setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
-  /**
    * Gate the subscription. Useful to wait until the initial fetch finishes.
    * Defaults to true.
    */
   enabled?: boolean;
-  /**
-   * Optional callback fired after any realtime change.
-   * Use this to re-run server-side queries (e.g. for pagination / total count).
-   */
-  onAnyChange?: () => void;
 }
 
 /**
  * `useRealtimeProducts`
  *
  * Subscribes to INSERT / UPDATE / DELETE events on the `Products` table and
- * merges each change into the provided state setter without a full page reload.
+ * mutates the React Query cache in-place without a full page reload.
  * The Supabase channel is cleaned up automatically on component unmount.
- *
- * @example
- * const [products, setProducts] = useState<Product[]>([]);
- * useRealtimeProducts({ setProducts, enabled: !loading });
  */
 export function useRealtimeProducts({
-  setProducts,
   enabled = true,
-  onAnyChange,
-}: UseRealtimeProductsOptions): void {
+}: UseRealtimeProductsOptions = {}): void {
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!enabled) return;
 
     // ── Subscribe ──────────────────────────────────────────────────────────
-    // Table name must match EXACTLY what is in Supabase — "Products" (capital P)
     const channel = supabase
       .channel('realtime:Products')
       .on(
@@ -56,14 +42,11 @@ export function useRealtimeProducts({
         (payload) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const newProduct = normalizeProduct(payload.new as Record<string, any>);
-          setProducts((prev) => {
-            // Prevent duplicates from optimistic updates
-            if (prev.some((p) => p.id === newProduct.id)) return prev;
-            return [newProduct, ...prev];
+          queryClient.setQueryData(PRODUCTS_QUERY_KEY, (oldData: Product[] | undefined) => {
+            if (!oldData) return oldData;
+            if (oldData.some((p) => p.id === newProduct.id)) return oldData;
+            return [newProduct, ...oldData];
           });
-          // Mark cache stale — next full fetch will get the new row
-          invalidateProductCache();
-          onAnyChange?.();
         }
       )
       .on(
@@ -72,12 +55,10 @@ export function useRealtimeProducts({
         (payload) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const updated = normalizeProduct(payload.new as Record<string, any>);
-          setProducts((prev) =>
-            prev.map((p) => (p.id === updated.id ? updated : p))
-          );
-          // Mark cache stale — next full fetch will reflect the update
-          invalidateProductCache();
-          onAnyChange?.();
+          queryClient.setQueryData(PRODUCTS_QUERY_KEY, (oldData: Product[] | undefined) => {
+            if (!oldData) return oldData;
+            return oldData.map((p) => (p.id === updated.id ? updated : p));
+          });
         }
       )
       .on(
@@ -85,10 +66,10 @@ export function useRealtimeProducts({
         { event: 'DELETE', schema: 'public', table: 'Products' },
         (payload) => {
           const deletedId = (payload.old as { id: number }).id;
-          setProducts((prev) => prev.filter((p) => p.id !== deletedId));
-          // Mark cache stale — next full fetch will exclude the deleted row
-          invalidateProductCache();
-          onAnyChange?.();
+          queryClient.setQueryData(PRODUCTS_QUERY_KEY, (oldData: Product[] | undefined) => {
+            if (!oldData) return oldData;
+            return oldData.filter((p) => p.id !== deletedId);
+          });
         }
       )
       .subscribe((status, err) => {
@@ -116,9 +97,6 @@ export function useRealtimeProducts({
         console.log('[Realtime] Unsubscribed from Products table');
       }
     };
-  // We deliberately exclude setProducts from deps — it is a stable dispatcher.
-  // onAnyChange is also excluded to avoid re-subscribing on every render if
-  // the caller passes an inline function.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]);
+  }, [enabled, queryClient]);
 }
+

@@ -1,28 +1,13 @@
-import { useEffect, useState } from 'react';
+// removed unused react imports
 import { useTranslation } from 'react-i18next';
-import { productService } from '@/services/productService';
+import { useDynamicCategories } from '@/hooks/useProducts';
 import { CategoryCard } from '@/components/shared/CategoryCard';
-import type { DynamicCategory } from '@/services/productService';
+// removed unused category import
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function CategorySection() {
   const { t } = useTranslation('common');
-  const [categories, setCategories] = useState<DynamicCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const data = await productService.getDynamicCategories();
-        setCategories(data);
-      } catch (error) {
-        console.error('Failed to load categories:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadCategories();
-  }, []);
+  const { data: categories = [], isLoading: loading } = useDynamicCategories();
 
   return (
     <section className="py-16 lg:py-24 bg-background">

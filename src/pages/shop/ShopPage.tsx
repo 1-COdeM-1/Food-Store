@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -8,7 +8,7 @@ import {
   List,
   X,
 } from 'lucide-react';
-import { productService } from '@/services/productService';
+import { useProducts, useDynamicCategories } from '@/hooks/useProducts';
 import { ProductCard } from '@/components/shared/ProductCard';
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { useRealtimeProducts } from '@/hooks/useRealtimeProducts';
 import { CategoryCard } from '@/components/shared/CategoryCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Product, SortOption } from '@/types';
+import type { SortOption } from '@/types';
 import type { DynamicCategory } from '@/services/productService';
 
 interface FilterContentProps {
@@ -175,10 +175,16 @@ export function ShopPage() {
     clearFilters,
   } = useFilterStore();
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: products = [], isLoading: loading } = useProducts({
+    category,
+    searchQuery: searchQuery || undefined,
+    priceRange: [priceRange[0], priceRange[1]],
+    sortBy,
+  });
+
+  const { data: categories = [] } = useDynamicCategories();
+  
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [categories, setCategories] = useState<DynamicCategory[]>([]);
 
   // Destructure into stable primitives so useCallback / useEffect deps stay
   // stable — a plain array reference changes on every Zustand render because
@@ -213,39 +219,8 @@ export function ShopPage() {
     }
   }, [categoryParam, category, setCategory]);
 
-  // Load dynamic categories from live product data
-  useEffect(() => {
-    productService.getDynamicCategories().then(setCategories);
-  }, []);
-
-  // Load ALL products matching current filters — no pagination
-  const loadProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await productService.getProducts({
-        category,
-        searchQuery: searchQuery || undefined,
-        priceRange: [priceMin, priceMax],
-        sortBy,
-      });
-      setProducts(data);
-    } catch (error) {
-      console.error('Failed to load products:', error);
-    } finally {
-      setLoading(false);
-    }
-  // priceMin / priceMax are stable primitives — no spurious array identity changes
-  }, [category, searchQuery, priceMin, priceMax, sortBy]);
-
-  useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
-
   // Subscribe to live DB changes
-  // The hook patches the product list in-place (INSERT/UPDATE/DELETE), so we
-  // no longer need onAnyChange to trigger a costly full refetch.
   useRealtimeProducts({
-    setProducts,
     enabled: !loading,
   });
 
